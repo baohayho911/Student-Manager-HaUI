@@ -1,0 +1,178 @@
+generator client {
+ provider = "prisma-client-js"
+}
+datasource db {
+ provider = "postgresql"
+ url = env("DATABASE_URL")
+ directUrl = env("DIRECT_URL")
+}
+enum VaiTro {
+ ADMIN
+ TEACHER
+ STUDENT
+}
+model TaiKhoan {
+ id Int @id @default(autoincrement())
+ tenDangNhap String @unique @db.VarChar(50)
+ giaTriBamMatKhau String
+ vaiTro VaiTro
+ hoTen String @db.VarChar(150)
+ email String? @db.VarChar(150)
+ soDienThoai String? @db.VarChar(20)
+ ngaySinh DateTime? @db.Date
+ diaChi String? @db.VarChar(300)
+ hoatDong Boolean @default(true)
+ yeuCauDoiMatKhau Boolean @default(true)
+ sinhVien SinhVien?
+ giangVien GiangVien?
+ quanTriVien QuanTriVien?
+ phien PhienDangNhap[]
+}
+model PhienDangNhap {
+ tokenHash String @id
+ taiKhoanId Int
+ hetHan DateTime
+ taiKhoan TaiKhoan @relation(fields:[taiKhoanId],references:[id],onDelete:Cascade)
+ @@index([taiKhoanId])
+ @@index([hetHan])
+}
+model GioiHanDangNhap {
+ khoa String @id
+ soLan Int @default(0)
+ hetHan DateTime
+}
+model Khoa {
+ id Int @id @default(autoincrement())
+ maKhoa String @unique @db.VarChar(30)
+ tenKhoa String @db.VarChar(150)
+ dacThuKhoa String? @db.VarChar(500)
+ truongKhoaId Int? @unique
+ truongKhoa GiangVien? @relation("TruongKhoa",fields:[truongKhoaId],references:[id],onDelete:SetNull)
+ nganh NganhDaoTao[]
+ giangVien GiangVien[] @relation("GiangVienKhoa")
+ quanTriVien QuanTriVien[]
+}
+model NganhDaoTao {
+ id Int @id @default(autoincrement())
+ maNganh String @unique @db.VarChar(30)
+ tenNganh String @db.VarChar(150)
+ yeuCauDauVao String? @db.VarChar(1000)
+ yeuCauDauRa String? @db.VarChar(1000)
+ thoiGianHoc Int @default(4)
+ khoaId Int
+ khoa Khoa @relation(fields:[khoaId],references:[id],onDelete:Restrict)
+ lop LopHanhChinh[]
+ chuongTrinh ChuongTrinhHoc[]
+}
+model GiangVien {
+ id Int @id @default(autoincrement())
+ maGiangVien String @unique @db.VarChar(30)
+ hocHam String? @db.VarChar(100)
+ hocVi String? @db.VarChar(100)
+ taiKhoanId Int @unique
+ khoaId Int
+ taiKhoan TaiKhoan @relation(fields:[taiKhoanId],references:[id],onDelete:Restrict)
+ khoa Khoa @relation("GiangVienKhoa",fields:[khoaId],references:[id],onDelete:Restrict)
+ truongKhoa Khoa? @relation("TruongKhoa")
+ lopCoVan LopHanhChinh[]
+ lopHocPhan LopHocPhan[]
+}
+model QuanTriVien {
+ id Int @id @default(autoincrement())
+ phongBan String? @db.VarChar(150)
+ chucVu String? @db.VarChar(100)
+ khoaId Int?
+ taiKhoanId Int @unique
+ khoa Khoa? @relation(fields:[khoaId],references:[id],onDelete:SetNull)
+ taiKhoan TaiKhoan @relation(fields:[taiKhoanId],references:[id],onDelete:Restrict)
+}
+model LopHanhChinh {
+ id Int @id @default(autoincrement())
+ maLop String @unique @db.VarChar(30)
+ tenLop String @db.VarChar(150)
+ nganhId Int
+ coVanId Int?
+ nganh NganhDaoTao @relation(fields:[nganhId],references:[id],onDelete:Restrict)
+ coVan GiangVien? @relation(fields:[coVanId],references:[id],onDelete:SetNull)
+ sinhVien SinhVien[]
+}
+model SinhVien {
+ id Int @id @default(autoincrement())
+ maSinhVien String @unique @db.VarChar(30)
+ nienKhoa String @db.VarChar(20)
+ trangThaiHocTap String @default("DANG_HOC") @db.VarChar(20)
+ taiKhoanId Int @unique
+ lopId Int
+ taiKhoan TaiKhoan @relation(fields:[taiKhoanId],references:[id],onDelete:Restrict)
+ lop LopHanhChinh @relation(fields:[lopId],references:[id],onDelete:Restrict)
+ ketQua KetQuaHocTap[]
+}
+model MonHoc {
+ id Int @id @default(autoincrement())
+ maMonHoc String @unique @db.VarChar(30)
+ tenMonHoc String @db.VarChar(150)
+ soTinChi Int
+ trongSoDiemTX Int @default(40)
+ trongSoDiemCuoiKy Int @default(60)
+ noiDungMonHoc String? @db.VarChar(2000)
+ chuongTrinh ChuongTrinhHoc[]
+ lopHocPhan LopHocPhan[]
+ dieuKien MonHocTienQuyet[] @relation("MonCanHoc")
+ laTienQuyet MonHocTienQuyet[] @relation("MonTruoc")
+}
+model MonHocTienQuyet {
+ monHocId Int
+ monTienQuyetId Int
+ diemToiThieu Decimal @default(4) @db.Decimal(4,2)
+ monHoc MonHoc @relation("MonCanHoc",fields:[monHocId],references:[id],onDelete:Restrict)
+ monTienQuyet MonHoc @relation("MonTruoc",fields:[monTienQuyetId],references:[id],onDelete:Restrict)
+ @@id([monHocId,monTienQuyetId])
+}
+model ChuongTrinhHoc {
+ monHocId Int
+ nganhId Int
+ loaiMon String @default("BAT_BUOC") @db.VarChar(20)
+ hocKyDuKien Int
+ monHoc MonHoc @relation(fields:[monHocId],references:[id],onDelete:Restrict)
+ nganh NganhDaoTao @relation(fields:[nganhId],references:[id],onDelete:Restrict)
+ @@id([monHocId,nganhId])
+}
+model HocKy {
+ id Int @id @default(autoincrement())
+ maHocKy String @unique @db.VarChar(30)
+ tenHocKy String @db.VarChar(150)
+ namHoc String @db.VarChar(20)
+ ngayBatDau DateTime @db.Date
+ ngayKetThuc DateTime @db.Date
+ lopHocPhan LopHocPhan[]
+}
+model LopHocPhan {
+ id Int @id @default(autoincrement())
+ maLopHocPhan String @unique @db.VarChar(30)
+ monHocId Int
+ hocKyId Int
+ giangVienId Int
+ siSoToiDa Int
+ lichHoc String @db.VarChar(200)
+ phongHoc String @db.VarChar(50)
+ trangThaiLop String @default("MO_DANG_KY") @db.VarChar(20)
+ khoaDiem Boolean @default(false)
+ monHoc MonHoc @relation(fields:[monHocId],references:[id],onDelete:Restrict)
+ hocKy HocKy @relation(fields:[hocKyId],references:[id],onDelete:Restrict)
+ giangVien GiangVien @relation(fields:[giangVienId],references:[id],onDelete:Restrict)
+ ketQua KetQuaHocTap[]
+ @@index([hocKyId])
+ @@index([giangVienId])
+}
+model KetQuaHocTap {
+ sinhVienId Int
+ lopHocPhanId Int
+ trangThaiDangKy String @default("DANG_KY") @db.VarChar(20)
+ thoiDiemDangKy DateTime @default(now())
+ diemTX Decimal? @db.Decimal(4,2)
+ diemCuoiKy Decimal? @db.Decimal(4,2)
+ sinhVien SinhVien @relation(fields:[sinhVienId],references:[id],onDelete:Restrict)
+ lopHocPhan LopHocPhan @relation(fields:[lopHocPhanId],references:[id],onDelete:Restrict)
+ @@id([sinhVienId,lopHocPhanId])
+ @@index([lopHocPhanId,trangThaiDangKy])
+}
